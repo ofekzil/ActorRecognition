@@ -16,8 +16,7 @@ This program is to recognize actors in videos and display a short summary of the
 - Optional data: Movie name/video title, (link to) profile picture, more somewhat relevant data (maybe for monitoring or reports).
 
 ### Client-side Extension
-TODO
-- Browser extension with the following functionalities:\
+- Browser extension with the following functionalities:
     1. Work on any Youtube video, though will only work with my videos. There will be no results for anything else.
     2. When a user clicks on a video, load all info required for this video from the database/file on AWS using resources/workflow outlined below.
     3. Display to the user in real-time the actors that are currently on screen. This includes name, possible profile picture, and possible IMDb url. At the very least, names.
@@ -38,3 +37,4 @@ TODO
 - How to get Youtube video ID from url or webpage
 - Decide on best use of ID for videos. Who decides first what the video ID is, and how to best communicate that information between the different components (Youtube, extension, S3, database).
 - How to best cache values at video start.
+- Check options of creating an algorithm for determining when actors appear on screen. Should be somewhat similar to a sliding window algorithm. Basically, something like actor A appers between timestamps 0 and 1, actor B appears in 0.5 to 2, then figure out teh best window of ehen to deiplay both. Will be implemented in server side initial processing of video when uploaded, then store results in database accordingly.
