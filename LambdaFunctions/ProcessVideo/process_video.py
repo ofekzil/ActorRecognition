@@ -33,3 +33,4 @@ def process_message(record):
     except Exception as e:
         print("An error occurred")
         raise e
+    

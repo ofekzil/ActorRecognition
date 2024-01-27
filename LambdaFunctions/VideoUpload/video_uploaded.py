@@ -2,6 +2,8 @@
 # the trigger for this lambda is whener a new item is added to the S3 bucket
 # will call start_celebrity_recognition and pass information for SNS Topic to write results to
 
+# Don't forget to set environment variables in Lambda (or local)!
+
 # modelled on AWS tutorial for using S3 to trigger lambda
 
 import json
