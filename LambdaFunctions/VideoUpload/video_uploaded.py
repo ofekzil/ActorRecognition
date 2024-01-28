@@ -59,16 +59,4 @@ def lambda_handler(event, context):
         print(e)
         print('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
         raise e
-              
-# gets the video id from the object tags
-# TODO: determine whether we're able to snd the video id through Rekognition/SNS to the process_video lambda,
-# or whether we need to move and call this function from process_video.py instead 
-# (if that's the case we need to give that lambda S3 permissions)
-def get_video_id(bucket, key):
-    print(f"Getting tags for video in bucket = {bucket}, with key/name = {key}")
-    tags = s3.get_object_tagging(Bucket=bucket, Key=key)
-    print("Received tags: ")
-    print(json.dumps(tags))
-    video_id = tags['TagSet'][0]['Value']
-    print(video_id)
-    return video_id
+    
