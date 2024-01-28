@@ -1,4 +1,4 @@
-# ActorRecognition
+# Actor Recognition
 
 ## Summary
 This program is to recognize actors in videos and display a short summary of them (i.e. name, image, IMDb URL) in a browser extension in real-time.
