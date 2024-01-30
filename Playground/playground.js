@@ -111,7 +111,9 @@ function processCurrentInfo() {
         console.log("No information about actors in this scene...");
     } else {
         for (let actor of info) {
-            console.log("Name: " + actor['name'] + ", Id: " + actor['actorId'] + ", Urls: " + actor['urls']);
+            console.log("Name: " + actor['name'] + ", Id: " + actor['actorId']);
+            console.log("Urls: ");
+            actor['urls'].forEach(url => console.log(url));
         }
     }
     console.log("Finished getting actors for this scene");
