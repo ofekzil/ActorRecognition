@@ -44,7 +44,7 @@ let response = {
         },
         {
             "start": 20500,
-            "end": 350000,
+            "end": 35000,
             "actors": [
                 {
                     "actorId": "18ir8e0",
@@ -117,4 +117,62 @@ function processCurrentInfo() {
         }
     }
     console.log("Finished getting actors for this scene");
+}
+
+// var myTime = 10000
+
+// var timeout = setTimeout(function(){
+//     var interval = setInterval(function(){
+//         var currentTime = vid.getCurrentTime()
+//         if (currentTime >= myTime / 1000){
+//             clearInterval(interval);
+//             console.log("Arrived at time: " + currentTime)
+//         }
+//     },1000);
+//   }, myTime-1000);
+
+// process info about actors in current scene
+// overloads function from above that does the exact same thing
+function processCurrentInfo(info) {
+    console.log("Actors in the current frame are: ");
+    if (info.length == 0) {
+        console.log("No information about actors in this scene...");
+    } else {
+        for (let actor of info) {
+            console.log("Name: " + actor['name'] + ", Id: " + actor['actorId']);
+            console.log("Urls: ");
+            actor['urls'].forEach(url => console.log(url));
+        }
+    }
+    console.log("Finished getting actors for this scene");
+}
+
+
+// create timeout event to log info when start time for this interval is reached from start of the video
+// there is currently no validation regarding the video's current time
+// the function simply sets a timeout from when called and triggers the callback when it finishes counting down
+// from it 
+function createEvent(window) {
+    let time = window['start']
+    console.log("Creating event for time: " + time)
+    var timeout = setTimeout(() => {
+        console.log("Event created at start of video, time: " + time)
+        processCurrentInfo(window['actors'])
+    }, time)
+    console.log("Finsihed creating event for time: " + time)
+    return timeout
+}
+
+// iterates over the repsonse object and creates timeout events for each window
+// called at the start of the video and only works if user watches from the start without skipping anywhere,
+// both forwards and backwards
+function createEvents() {
+    console.log("Started creating events")
+    let windows = response['windows']
+     for (let i = 0; i < windows.length; i++) {
+        let window = windows[i]
+        var timeout = createEvent(window)
+        console.log("Created event for window: " + window + ", timeout result: " + timeout)
+     }
+     console.log("Finished creating events")
 }
