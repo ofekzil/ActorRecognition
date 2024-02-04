@@ -1,0 +1,10 @@
+{
+    "manifest_version" : 3,
+    "name" : "Actor Recognition",
+    "version" : "1.0",
+    "description" : "Recognize actors in current scene of Youtube video",
+    "permissions" : ["scripting", "tabs", "activeTab"],
+    "action" : {
+        "default_popup" : "./Extension/popup.html"
+    }
+}
