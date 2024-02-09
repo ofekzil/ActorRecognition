@@ -74,6 +74,80 @@ let response = {
     ]
 }
 
+// reworked schema
+// CHANGES: contains two actor arrays - actorsToRemove and actorsToAdd
+// actorsToRemobe includes all actors no longer in the scene that need to be removed from the display
+// actorsToAdd includes all new actors in the scene that need to be added to the display
+let responseNew = {
+    "videoId": "someId123",
+    "name": "someVideoName",
+    "length": 100000, // in millis
+    "windows": [
+        {
+            "start": 0,
+            "actorsToRemove": [
+
+            ],
+            "actorsToAdd": [
+                {
+                    "actorId": "18ir8e0",
+                    "name": "Jeff Bridges",
+                    "urls": [
+                        "www.imdb.com/name/nm0000313",
+                        "www.wikidata.org/wiki/Q174843"
+                    ]
+                }
+            ]
+        },
+        {
+            "start": 20000,
+            "actorsToRemove": [
+                {
+                    "actorId": "18ir8e0",
+                    "name": "Jeff Bridges",
+                    "urls": [
+                        "www.imdb.com/name/nm0000313",
+                        "www.wikidata.org/wiki/Q174843"
+                    ]
+                }
+            ],
+            "actorsToAdd": [
+                {
+                    "actorId": "3k2Xl",
+                    "name": "Steve Buscemi",
+                    "urls": [
+                        "www.wikidata.org/wiki/Q104061",
+                        "www.imdb.com/name/nm0000114"
+                    ]
+                }
+            ]
+        },
+        {
+            "start": 40000,
+            "actorsToRemove": [
+                {
+                    "actorId": "3bH4eA5d",
+                    "name": "John Goodman",
+                    "urls": [
+                        "www.wikidata.org/wiki/Q215072"
+                    ]
+                },
+                {
+                    "actorId": "3k2Xl",
+                    "name": "Steve Buscemi",
+                    "urls": [
+                        "www.wikidata.org/wiki/Q104061",
+                        "www.imdb.com/name/nm0000114"
+                    ]
+                }
+            ],
+            "actorsToAdd": [
+                
+            ]
+        }
+    ]
+}
+
 // represent the most recent index in the windows array property
 // this is done to optimize lookups
 let mostRecent = 0
