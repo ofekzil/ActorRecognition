@@ -82,8 +82,11 @@ def process_video(video):
         },
     }
 
+    # use this array for grouping actors
+    # pass this array to group_actors()
     celebs = video['Celebrities']
 
+    # unnecessary processing
     for actor in celebs:
         actorId = actor['Celebrity']['Id']
         if actorId not in actors_processed.keys():
@@ -100,6 +103,7 @@ def process_video(video):
     print("Actors processed:")
     print(json.dumps(actors_processed))
 
+    # use celebs array from above
     # grouped_actors = group_actors(actors_processed)
     # write_to_db(actors=grouped_actors, video=video_processed)
 
@@ -122,7 +126,34 @@ def get_video_id(bucket, key):
 # are together in a certain time window
 # will look at the different actors' start & end timestamps and would determine that way
 # an acceptable margin of error for when an actor is on-screen is +/-10 seconds from end/start (flexible)
-def group_actors(processed_video):
+
+# Sample result schema can be viewed in ChromeExtension/Extension/scripts.js
+# Tentative algorithm steps:
+# 1. Sort actors array by timetamp (ascending)
+# 2. Create the following local variables:
+#   - windows: result array with all groups
+#   - curr_group: current group of actors to add to
+#   - actor_timestamps: dict of each actor's most recent timestamp for appearance in the video
+#                       will be of format {actorId : timestamp}
+#                       might also turn timestamp to an array of all of an actor's timestamps (if needed)
+# 3. for actor in actors:
+#       if actor in curr_group:
+#           if actor['Timestamp'] >= curr_group['end'] + 10000 (10 second margin of error):
+#               add curr_group to windows
+#               create new curr_group and add actor and timestamp to it 
+#               update actor_timestamps and curr_group['end']
+#           else:
+#               update actor_timestamps
+#       else if actor['Timestamp'] <= curr_group['end'] + 10000 (10 second margin of error):
+#           add actor to curr_group 
+#           update actor_timestamps and curr_group['end']
+#       else:
+#           add curr_group to windows 
+#           create new group with actor and timestamp
+#           update actor_timestamps and curr_group['end']
+# 4. add curr_group to windows
+# 5. retrun windows
+def group_actors(actors):
     return None
 
 # write grouped results to some database, likely DynamoDB
