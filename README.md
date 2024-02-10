@@ -23,12 +23,12 @@ This program is to recognize actors in videos and display a short summary of the
 - When the extension requests data for a video, it will call an API Gateway to invoke a Lambda.
 - the Lambda function would use a given ID value from the extension (via API call), in order to retreive all necessary information from the database (or file).
 - The database in question is the same one described in previous section.
-- Return info to the extension and cache the values tp be used while video plays. This will be all ideally done before the video starts playing.
+- Return info to the extension and cache the values to be used while video plays. This will be all ideally done before the video starts playing.
 - After retreiving data, the extension will need to set triggers using the provided timestamps, so it knows when to display each actor.
 
 ### Questions & TODO
 - Discover more about Rekognition and how it works (mess around with CLI and API).
-- How do reuests and responses work?
+- How do requests and responses work?
 - Where do responses from Rekognition go? Is it SNS, and if so, how is it best utilized?
 - For data storage, what is the best way both in terms of space and efficiency? Is a database better (DynamoDB), or simply a file on perhaps S3?
 - When an actor appears multiple times, what happens timestamp-wise? Do they send an event for every millisecond the actor appears? How do we know when they stop appearing?
@@ -37,4 +37,4 @@ This program is to recognize actors in videos and display a short summary of the
 - How to get Youtube video ID from url or webpage
 - Decide on best use of ID for videos. Who decides first what the video ID is, and how to best communicate that information between the different components (Youtube, extension, S3, database).
 - How to best cache values at video start.
-- Check options of creating an algorithm for determining when actors appear on screen. Should be somewhat similar to a sliding window algorithm. Basically, something like actor A appers between timestamps 0 and 1, actor B appears in 0.5 to 2, then figure out teh best window of ehen to deiplay both. Will be implemented in server side initial processing of video when uploaded, then store results in database accordingly.
+- Check options of creating an algorithm for determining when actors appear on screen. Should be somewhat similar to a sliding window algorithm. Basically, something like actor A appers between timestamps 0 and 1, actor B appears in 0.5 to 2, then figure out the best window of when to display both. Will be implemented in server side initial processing of video when uploaded, then store results in database accordingly.

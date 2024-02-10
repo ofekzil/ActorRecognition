@@ -41,19 +41,11 @@ function getActors(vidCurrentTime, response) {
     return info;
 }
 
-
-// recognize actors in current scene
-// called from onClick handler
-function recognizeActors() {
- 
-    // if there ar ever for whatever reason more video elements, will need to rework logic here,
-    // though very unlikely this will happen
-    let vid = document.getElementsByTagName("video")[0];
-    console.log("Video selected: ");
-    console.log("Video baseURI: " + vid.baseURI);
-    console.log("Video currentTime: " + vid.currentTime); // IN SECONDS!!
-    // hard-coded variable will be replaced by function call that returns response from DB
-    let responseLebowski = {
+// get video info from DB using provided videoId
+function getVideoInfo(videoId) {
+    console.log("Begin logic to retreive video info from DB");
+    // hard-coded variable will be replaced by code that returns response from DB
+    let response = {
         "videoId": "someId123",
         "name": "someVideoName",
         "length": 100000, // in millis
@@ -108,8 +100,30 @@ function recognizeActors() {
             }
         ]
     };
+    console.log("Retreived video info from DB");
+    return response;
+}
 
-    let actors = getActors(vid.currentTime, responseLebowski);
+
+// recognize actors in current scene
+// called from onClick handler
+function recognizeActors() {
+ 
+    // if there ar ever for whatever reason more video elements, will need to rework logic here,
+    // though very unlikely this will happen
+    let vid = document.getElementsByTagName("video")[0];
+    let vidUrl = vid.baseURI;
+    console.log("Video selected: ");
+    console.log("Video baseURI: " + vidUrl);
+    console.log("Video currentTime: " + vid.currentTime); // IN SECONDS!!
+
+    // videoId to be used for retreiving video info from DB
+    let videoId = vidUrl.split("v=")[1];
+    console.log("videoId: " + videoId)
+    
+    let response = getVideoInfo(videoId);
+
+    let actors = getActors(vid.currentTime, response);
     if (actors === null) {
         console.log("could not get info about actors in this scene");
     } else {
