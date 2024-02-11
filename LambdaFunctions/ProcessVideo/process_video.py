@@ -13,9 +13,9 @@
 import boto3
 import json
 
-rek_client = boto3.client('rekognition')
-# TODO: give this lambda S3 permissions
-s3_client = boto3.client('s3')
+# rek_client = boto3.client('rekognition')
+
+# s3_client = boto3.client('s3')
 
 def lambda_handler(event, context):
     print("Started lambda function")
@@ -30,7 +30,7 @@ def process_message(record):
         message_json = json.loads(message)
         jobId = message_json['JobId']
         print(jobId)
-        res = rek_client.get_celebrity_recognition(JobId=jobId)
+        res = rek_client.get_celebrity_recognition(JobId=jobId, SortBy='TIMESTAMP')
         res_str = json.dumps(res)
         print(res_str)
         process_video(res)
@@ -127,9 +127,15 @@ def get_video_id(bucket, key):
 # will look at the different actors' start & end timestamps and would determine that way
 # an acceptable margin of error for when an actor is on-screen is +/-10 seconds from end/start (flexible)
 
+# NOTE: Can also add filter for min confidence level and store results in DB accordingly
+#       For example, we might say we only look at results where Rekognition's confidence level in recognizing 
+#       a specific actor is at least 85%, and anything below that we don't process.
+#       We can then store these results in a different table, and perhaps add an option in the extension
+#       for a minimum confidence level in recognition.
+
 # Sample result schema can be viewed in ChromeExtension/Extension/scripts.js
 # Tentative algorithm steps:
-# 1. Sort actors array by timetamp (ascending)
+# 1. Sort actors array by timetamp (ascending); Can do in get_celebrity_recognition call
 # 2. Create the following local variables:
 #   - windows: result array with all groups
 #   - curr_group: current group of actors to add to
@@ -152,9 +158,45 @@ def get_video_id(bucket, key):
 #           create new group with actor and timestamp
 #           update actor_timestamps and curr_group['end']
 # 4. add curr_group to windows
-# 5. retrun windows
+# 5. return windows
 def group_actors(actors):
-    return None
+    # actors = sorted(actors, key=lambda a: a['Timestamp'])
+    windows = []
+    curr_group = {
+        "start": 0,
+        "end": 0,
+        "actors": []
+    }
+    actor_timestamps = {}
+
+    for actor in actors:
+        if actor['info'] in curr_group['actors']:
+            if actor['timestamp'] >= curr_group['end'] + 10000:
+                windows.append(curr_group)
+                curr_group = {
+                    "start": actor['timestamp'],
+                    "end": actor['timestamp'],
+                    "actors": [
+                        actor['info']
+                    ]
+                }
+            else :
+                curr_group['end'] = actor['timestamp']
+        elif actor['timestamp'] <= curr_group['end'] + 10000:
+            curr_group['actors'].append(actor['info'])
+            curr_group['end'] = actor['timestamp']
+        else:
+            windows.append(curr_group)
+            curr_group = {
+                    "start": actor['timestamp'],
+                    "end": actor['timestamp'],
+                    "actors": [
+                        actor['info']
+                    ]
+                }
+        actor_timestamps[actor['info']['actorId']] = actor['timestamp']
+    windows.append(curr_group)
+    return windows
 
 # write grouped results to some database, likely DynamoDB
 # can have two tables (or object templates), which will be:
