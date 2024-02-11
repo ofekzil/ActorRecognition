@@ -13,9 +13,9 @@
 import boto3
 import json
 
-# rek_client = boto3.client('rekognition')
+rek_client = boto3.client('rekognition')
 
-# s3_client = boto3.client('s3')
+s3_client = boto3.client('s3')
 
 def lambda_handler(event, context):
     print("Started lambda function")
