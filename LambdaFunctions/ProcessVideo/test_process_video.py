@@ -1,4 +1,4 @@
-from process_video import group_actors
+from process_video import group_actors, get_actors
 import unittest
 import json
 
@@ -297,6 +297,8 @@ seinfeld_expected = [
 ]
 
 
+
+
 class TestGroupActors(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -308,5 +310,31 @@ class TestGroupActors(unittest.TestCase):
     
     def test_seinfeld(self):
         res = group_actors(seinfeld_input)
-        print(json.dumps(res, indent=2))
+        # print(json.dumps(res, indent=2))
         self.assertListEqual(res, seinfeld_expected)
+
+    def test_seinfeld_from_file(self):
+        seinfeld_file = open("TestResults/SeinfeldProcessing_0.json")
+        seinfled_raw = json.load(seinfeld_file)
+        input = get_actors(seinfled_raw['Celebrities'])
+        # print("Input: \n" + json.dumps(input, indent=2))
+        with open("TestResults/SeinfledGetActors_0.json", "w") as f0:
+            json.dump(input, f0, indent=2)
+        res = group_actors(input)
+        # print("res: \n" + json.dumps(res, indent=2))
+        with open("TestResults/SeinfledGroupActors_0.json", "w") as f1:
+            json.dump(res, f1, indent=2)
+        self.assertEqual(1, 1)
+
+    def test_lebowski_from_file(self):
+        lebowski_file = open("TestResults/LebowskiProcessing.json")
+        lebowski_raw = json.load(lebowski_file)
+        input = get_actors(lebowski_raw['Celebrities'])
+        # print("Input: \n" + json.dumps(input, indent=2))
+        with open("TestResults/LebowskiGetActors_0.json", "w") as f0:
+            json.dump(input, f0, indent=2)
+        res = group_actors(input)
+        # print("res: \n" + json.dumps(res, indent=2))
+        with open("TestResults/LebowskiGroupActors_0.json", "w") as f1:
+            json.dump(res, f1, indent=2)
+        self.assertEqual(1, 1)

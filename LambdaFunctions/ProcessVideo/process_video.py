@@ -13,6 +13,8 @@
 import boto3
 import json
 
+MARGIN_OF_ERROR = 10000
+
 rek_client = boto3.client('rekognition')
 
 s3_client = boto3.client('s3')
@@ -107,6 +109,21 @@ def process_video(video):
     # grouped_actors = group_actors(actors_processed)
     # write_to_db(actors=grouped_actors, video=video_processed)
 
+# prepare actors as input for group_actors
+def get_actors(celebs):
+    actors = []
+    for celeb in celebs:
+        # print("celeb: " + celeb)
+        actor = {
+            'timestamp': celeb['Timestamp'],
+            'info': {
+                'actorId': celeb['Celebrity']['Id'],
+                'name': celeb['Celebrity']['Name'],
+                'urls': celeb['Celebrity']['Urls']
+            }
+        }
+        actors.append(actor)
+    return actors
 
 # gets the video id from the object tags
 # TODO: determine whether we're able to snd the video id through Rekognition/SNS to the process_video lambda,
@@ -144,13 +161,13 @@ def get_video_id(bucket, key):
 #                       might also turn timestamp to an array of all of an actor's timestamps (if needed)
 # 3. for actor in actors:
 #       if actor in curr_group:
-#           if actor['Timestamp'] >= curr_group['end'] + 10000 (10 second margin of error):
+#           if actor['Timestamp'] >= curr_group['end'] + MARGIN_OF_ERROR (predefined margin of error - 10 secs currently):
 #               add curr_group to windows
 #               create new curr_group and add actor and timestamp to it 
 #               update actor_timestamps and curr_group['end']
 #           else:
 #               update actor_timestamps
-#       else if actor['Timestamp'] <= curr_group['end'] + 10000 (10 second margin of error):
+#       else if actor['Timestamp'] <= curr_group['end'] + MARGIN_OF_ERROR (predefined second margin of error - 10 secs currently):
 #           add actor to curr_group 
 #           update actor_timestamps and curr_group['end']
 #       else:
@@ -171,7 +188,8 @@ def group_actors(actors):
 
     for actor in actors:
         if actor['info'] in curr_group['actors']:
-            if actor['timestamp'] >= curr_group['end'] + 10000:
+            if actor['timestamp'] >= curr_group['end'] + MARGIN_OF_ERROR:
+                prev_group = curr_group
                 windows.append(curr_group)
                 curr_group = {
                     "start": actor['timestamp'],
@@ -180,13 +198,15 @@ def group_actors(actors):
                         actor['info']
                     ]
                 }
+                curr_group = check_rest_actors(prev_group, curr_group, actor_timestamps, actor['info']['actorId'])
             else :
                 curr_group['end'] = actor['timestamp']
-        elif actor['timestamp'] <= curr_group['end'] + 10000:
+        elif actor['timestamp'] <= curr_group['end'] + MARGIN_OF_ERROR:
             curr_group['actors'].append(actor['info'])
             curr_group['end'] = actor['timestamp']
         else:
             windows.append(curr_group)
+            prev_group = curr_group
             curr_group = {
                     "start": actor['timestamp'],
                     "end": actor['timestamp'],
@@ -194,9 +214,25 @@ def group_actors(actors):
                         actor['info']
                     ]
                 }
+            curr_group = check_rest_actors(prev_group, curr_group, actor_timestamps, actor['info']['actorId'])
         actor_timestamps[actor['info']['actorId']] = actor['timestamp']
+
     windows.append(curr_group)
     return windows
+
+# determine whether of the actors from prev_group 
+# should be added to newly created curr_group
+# it might be useless, so need to test further
+def check_rest_actors(prev_group, curr_group, actor_timestamps, actor_id):
+    print("started check_rest_actors")
+    print("prev_group: " + json.dumps(prev_group, indent=2))
+    for actor in prev_group['actors']:
+        if actor['actorId'] != actor_id:
+            if actor_timestamps[actor['actorId']] + MARGIN_OF_ERROR >= curr_group['start']:
+                curr_group['actors'].append(actor['info'])
+                print("added to group: " + actor['name'])
+    print("finished check_rest_actors")
+    return curr_group
 
 # write grouped results to some database, likely DynamoDB
 # can have two tables (or object templates), which will be:
