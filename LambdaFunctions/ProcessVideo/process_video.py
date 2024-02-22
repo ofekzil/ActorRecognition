@@ -31,11 +31,14 @@ def process_message(record):
         print(f"Processed message {message}")
         message_json = json.loads(message)
         jobId = message_json['JobId']
-        print(jobId)
-        res = rek_client.get_celebrity_recognition(JobId=jobId, SortBy='TIMESTAMP')
-        res_str = json.dumps(res)
-        print(res_str)
-        process_video(res)
+        print("JobId: " + jobId)
+        response = rek_client.get_celebrity_recognition(JobId=jobId, SortBy='TIMESTAMP')
+        print("Response from get_celebrity_recognition: ")
+        print(json.dumps(response))
+
+        print("Starting video processing")
+        process_video(response)
+        print("Finished processing video")
         
     except Exception as e:
         print("An error occurred")
@@ -51,63 +54,13 @@ def process_video(video):
         "bucket": video['Video']['S3Object']['Bucket'],
         "lengthMillis": video['VideoMetadata']['DurationMillis']
     }
+
     video_processed['videoId'] = get_video_id(bucket=video_processed['bucket'], key=video_processed['name'])
 
-    # template for a json object of processed actors
-    actors_processed = {
-        "idValue0": {
-            "name": "",
-                "urls": [
-                    "",
-                    ""
-                ],
-                "timestamps": [
-                    {
-                        "start": "",
-                        "end": ""
-                    },
-                    {
-                        "start": "",
-                        "end": ""
-                    }
-                ]
-        },
-        "idValue1": {
-            "name": "",
-                "urls": [
-                    "",
-                    ""
-                ],
-                "timestamps": [
-                    0, 10, 200
-                ]
-        },
-    }
-
-    # use this array for grouping actors
     # pass this array to group_actors()
-    celebs = video['Celebrities']
-
-    # unnecessary processing
-    for actor in celebs:
-        actorId = actor['Celebrity']['Id']
-        if actorId not in actors_processed.keys():
-            actors_processed[actorId] = {
-                "name": actor['Celebrity']['Name'],
-                "urls": actor['Celebrity']['Urls'],
-                "timestamps": []
-            }
-        
-        actors_processed[actorId]['timestamps'].append(actor['Timestamp'])
-
-    print("Video processed:")
-    print(json.dumps(video_processed))
-    print("Actors processed:")
-    print(json.dumps(actors_processed))
-
-    # use celebs array from above
-    # grouped_actors = group_actors(actors_processed)
-    # write_to_db(actors=grouped_actors, video=video_processed)
+    actors_processed = get_actors(video['Celebrities'])
+    grouped_actors = group_actors(actors_processed)
+    write_to_db(actors=grouped_actors, video=video_processed)
 
 # prepare actors as input for group_actors
 def get_actors(celebs):
@@ -126,16 +79,13 @@ def get_actors(celebs):
     return actors
 
 # gets the video id from the object tags
-# TODO: determine whether we're able to snd the video id through Rekognition/SNS to the process_video lambda,
-# or whether we need to move and call this function from process_video.py instead 
-# (if that's the case we need to give that lambda S3 permissions)
 def get_video_id(bucket, key):
     print(f"Getting tags for video in bucket = {bucket}, with key/name = {key}")
     tags = s3_client.get_object_tagging(Bucket=bucket, Key=key)
     print("Received tags: ")
     print(json.dumps(tags))
     video_id = tags['TagSet'][0]['Value']
-    print(video_id)
+    print("VideoId: " + video_id)
     return video_id
 
 # function to put actors into timestamp groups
@@ -177,6 +127,7 @@ def get_video_id(bucket, key):
 # 4. add curr_group to windows
 # 5. return windows
 def group_actors(actors):
+    # handled in get_celebrity_recognition call, keeping just in case
     # actors = sorted(actors, key=lambda a: a['Timestamp'])
     windows = []
     curr_group = {
@@ -214,6 +165,7 @@ def group_actors(actors):
                         actor['info']
                     ]
                 }
+            # might be unnecessary/useless
             curr_group = check_rest_actors(prev_group, curr_group, actor_timestamps, actor['info']['actorId'])
         actor_timestamps[actor['info']['actorId']] = actor['timestamp']
 
@@ -242,4 +194,17 @@ def check_rest_actors(prev_group, curr_group, actor_timestamps, actor_id):
 #       Basically, each element in the array will include a starting timestamp, an end timestamp, then an array of celebs to display
 #       between these two timestamps.
 def write_to_db(actors, video):
-    pass
+    print("Video processed:")
+    print(json.dumps(video))
+    print("Actors processed:")
+    print(json.dumps(actors))
+
+    object_to_write = {
+        video['videoId'] : {
+            'video': video,
+            'actors': actors
+        }
+    }
+
+    print("object_to_write: ")
+    print(json.dumps(object_to_write))
