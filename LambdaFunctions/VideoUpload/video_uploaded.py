@@ -7,7 +7,7 @@
 
 # when uploading a video, ass a tag called videoId that is identical to the Youtube generated video Id,
 # that is found in a video's url after v= 
-# for exampel here: https://www.youtube.com/watch?v=4KD_JxmmPgg, the video Id is 4KD_JxmmPgg
+# for example here: https://www.youtube.com/watch?v=4KD_JxmmPgg, the video Id is 4KD_JxmmPgg
 
 # Don't forget to set environment variables in Lambda (or local)!
 
@@ -23,19 +23,20 @@ print('Loading function')
 SNS_TOPIC_ARN = os.environ.get('SNS_TOPIC_ARN')
 ROLE_ARN = os.environ.get('ROLE_ARN')
 
-s3 = boto3.client('s3')
-rekognition = boto3.client('rekognition')
+rekognition_client = boto3.client('rekognition')
 
 
 def lambda_handler(event, context):
-    print("Received event: " + json.dumps(event, indent=2))
+    print("Received event: " + json.dumps(event))
 
     # bucket can be used for processing with rekognition
     bucket = event['Records'][0]['s3']['bucket']['name']
     print("Bucket = " + bucket)
+
     # key is the video name - can be used directly in rekognition
     key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
     print("Key = " + key)
+    
     s3_vid = {
             'S3Object': {
                 'Bucket' : bucket,
@@ -46,15 +47,12 @@ def lambda_handler(event, context):
         'SNSTopicArn' : SNS_TOPIC_ARN,
         'RoleArn' : ROLE_ARN
     }
+
     try:
-        response = rekognition.start_celebrity_recognition(Video=s3_vid, NotificationChannel=sns_channel)
+        response = rekognition_client.start_celebrity_recognition(Video=s3_vid, NotificationChannel=sns_channel)
         print("Receievd response from start_celebrity_recognition: ")
         print(json.dumps(response))
-        # response = s3.get_object(Bucket=bucket, Key=key)
-        # print("Received response from S3 get_object: ")
-        # print(json.dumps(response, indent=2, sort_keys=True, default=str))
-        # print("CONTENT TYPE: " + response['ContentType'])
-        # return response['ContentType']
+
     except Exception as e:
         print(e)
         print('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))

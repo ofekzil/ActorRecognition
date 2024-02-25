@@ -47,11 +47,16 @@ function getVideoInfo(videoId) {
     // hard-coded variable will be replaced by code that returns response from DB
     let response = {
         "videoId": "someId123",
-        "name": "someVideoName",
-        "length": 100000, // in millis
+        "video": {
+            "videoId": "someId123",
+            "name": "someVideoName",
+            "bucket": "recognitionvideos",
+            "lengthMillis": 100000
+        },
         "windows": [
             {
                 "start": 0,
+                "end": 20000,
                 "actors": [
                     {
                         "actorId": "18ir8e0",
@@ -72,6 +77,7 @@ function getVideoInfo(videoId) {
             },
             {
                 "start": 20000,
+                "end": 45000,
                 "actors": [
                     {
                         "actorId": "18ir8e0",
