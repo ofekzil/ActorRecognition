@@ -1,4 +1,5 @@
 
+
 // clear all existing actors in frame to 
 function clearDisplay() {
     console.log("Beginning to clear actors from display");
@@ -41,71 +42,25 @@ function getActors(vidCurrentTime, response) {
     return info;
 }
 
+
 // get video info from DB using provided videoId
 function getVideoInfo(videoId) {
     console.log("Begin logic to retreive video info from DB");
-    // hard-coded variable will be replaced by code that returns response from DB
-    let response = {
-        "videoId": "someId123",
-        "video": {
-            "videoId": "someId123",
-            "name": "someVideoName",
-            "bucket": "recognitionvideos",
-            "lengthMillis": 100000
-        },
-        "windows": [
-            {
-                "start": 0,
-                "end": 20000,
-                "actors": [
-                    {
-                        "actorId": "18ir8e0",
-                        "name": "Jeff Bridges",
-                        "urls": [
-                            "www.imdb.com/name/nm0000313",
-                            "www.wikidata.org/wiki/Q174843"
-                        ]
-                    },
-                    {
-                        "actorId": "3bH4eA5d",
-                        "name": "John Goodman",
-                        "urls": [
-                            "www.wikidata.org/wiki/Q215072"
-                        ]
-                    }
-                ]
-            },
-            {
-                "start": 20000,
-                "end": 45000,
-                "actors": [
-                    {
-                        "actorId": "18ir8e0",
-                        "name": "Jeff Bridges",
-                        "urls": [
-                            "www.imdb.com/name/nm0000313",
-                            "www.wikidata.org/wiki/Q174843"
-                        ]
-                    },
-                    {
-                        "actorId": "3bH4eA5d",
-                        "name": "John Goodman",
-                        "urls": [
-                            "www.wikidata.org/wiki/Q215072"
-                        ]
-                    },
-                    {
-                        "actorId": "3k2Xl",
-                        "name": "Steve Buscemi",
-                        "urls": [
-                            "www.wikidata.org/wiki/Q104061",
-                            "www.imdb.com/name/nm0000114"
-                        ]
-                    }
-                ]
-            }
-        ]
+    const VIDEO_API = "https://v43ehquqkg.execute-api.us-west-2.amazonaws.com/the-stage/GetVideo"; // check if it can become a global variable (or hidden from view)
+    let payload = {"videoId": videoId};
+    let response = {};
+    let request = new XMLHttpRequest();
+    request.open("POST", VIDEO_API, false); // synchronous call!
+    request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    request.onreadystatechange = function () {
+        if (request.readyState === 4 && request.status === 200) {
+            console.log("request.responseText: " + request.responseText);
+            response = JSON.parse(request.responseText);
+        }
     };
+    request.send(JSON.stringify(payload));
+
+    console.log("response: " + JSON.stringify(response))
     console.log("Retreived video info from DB");
     return response;
 }
@@ -124,7 +79,7 @@ function recognizeActors() {
     console.log("Video currentTime: " + vid.currentTime); // IN SECONDS!!
 
     // videoId to be used for retreiving video info from DB
-    let videoId = vidUrl.split("v=")[1];
+    let videoId = vidUrl.split("v=")[1].split("&")[0];
     console.log("videoId: " + videoId)
     
     let response = getVideoInfo(videoId);
