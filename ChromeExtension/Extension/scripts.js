@@ -1,22 +1,65 @@
 
+// create a div for displaying the actors overlayed on the video
+function createDisplay(video) {
+    let display = document.getElementById("actorsDisplay");
+    if (display != null) {
+        display.remove();
+    }
+    let vidContainer = video.parentElement;
+    display = document.createElement("div");
+    display.id = "actorsDisplay";
+    display.class = "overlay";
+    display.style.position = "absolute";
+    display.style.top = 50;
+    let title = document.createElement("h2");
+    title.innerText = "Actors in Scene";
+    title.id = "actorsTitle";
+    let actors = document.createElement("div");
+    actors.id = "actors";
+    display.appendChild(title);
+    display.appendChild(actors);
+    vidContainer.appendChild(display);
+}
 
-// clear all existing actors in frame to 
+// clear all existing actors in display 
 function clearDisplay() {
     console.log("Beginning to clear actors from display");
-    // add condition to check if display is empty (if possible)
-    console.log("Actors are in display, clearing");
-    // clear actors from display
+    let actorsList = document.getElementById("actorsList");
+    if (actorsList != null) {
+        console.log("Actors are in display, clearing");
+        actorsList.remove();
+    }
+    let actorsDiv = document.getElementById("actorsDisplay");
+    actorsList = document.createElement("ul");
+    actorsList.id = "actorsList";
+    actorsDiv.appendChild(actorsList);
     console.log("Finished clearing actors from display");
 }
 
-// render actors in current scene to frame
+// render actors in current scene to display
+// display their name and urls
 function renderActors(actors) {
     clearDisplay();
     console.log("Adding the following actors to display: ");
+    let actorsList = document.getElementById("actorsList");
     for (let actor of actors) {
         console.log("Name: " + actor['name'] + ", Id: " + actor['actorId']);
         console.log("Urls: ");
         actor['urls'].forEach(url => console.log(url));
+        let actorDisplay = document.createElement("li");
+        actorDisplay.id = actor['actorId'];
+        let name = document.createElement("p");
+        name.innerText = actor['name'];
+        actorDisplay.appendChild(name);
+        // PROBLEM: If simply left-clicking on url, will interact with video instead of going to new page (e.g. IMDb)
+        //          Works if right-click -> open in new tab
+        actor['urls'].forEach(url => {
+            let u = document.createElement("a");
+            u.href = "https://" + url;
+            u.innerText = (url.includes("imdb") ? "IMDb" : "Wikidata") + " ";
+            actorDisplay.appendChild(u);
+        })
+        actorsList.appendChild(actorDisplay);
     }
     console.log("Finished adding actors to frame");
 }
@@ -74,6 +117,9 @@ function recognizeActors() {
     // though very unlikely this will happen
     let vid = document.getElementsByTagName("video")[0];
     let vidUrl = vid.baseURI;
+    // PROBLEM: if navigating to new video after previous video, will display actors from previous video 
+    //          until Recognize button is pressed again
+    createDisplay(vid); 
     console.log("Video selected: ");
     console.log("Video baseURI: " + vidUrl);
     console.log("Video currentTime: " + vid.currentTime); // IN SECONDS!!
