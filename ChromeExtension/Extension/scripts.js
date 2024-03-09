@@ -5,20 +5,24 @@ function createDisplay(video) {
     if (display != null) {
         display.remove();
     }
-    let vidContainer = video.parentElement;
     display = document.createElement("div");
     display.id = "actorsDisplay";
     display.class = "overlay";
-    display.style.position = "absolute";
-    display.style.top = 50;
+    display.style.position = "relative";
+    
     let title = document.createElement("h2");
     title.innerText = "Actors in Scene";
     title.id = "actorsTitle";
+    
     let actors = document.createElement("div");
     actors.id = "actors";
+    
     display.appendChild(title);
     display.appendChild(actors);
-    vidContainer.appendChild(display);
+
+    let vidContainer = video.parentElement;
+    video.pause();
+    vidContainer.appendChild(display);   
 }
 
 // clear all existing actors in display 
@@ -29,7 +33,7 @@ function clearDisplay() {
         console.log("Actors are in display, clearing");
         actorsList.remove();
     }
-    let actorsDiv = document.getElementById("actorsDisplay");
+    let actorsDiv = document.getElementById("actors");
     actorsList = document.createElement("ul");
     actorsList.id = "actorsList";
     actorsDiv.appendChild(actorsList);
@@ -38,7 +42,7 @@ function clearDisplay() {
 
 // render actors in current scene to display
 // display their name and urls
-function renderActors(actors) {
+function renderActors(actors, video) {
     clearDisplay();
     console.log("Adding the following actors to display: ");
     let actorsList = document.getElementById("actorsList");
@@ -51,12 +55,21 @@ function renderActors(actors) {
         let name = document.createElement("p");
         name.innerText = actor['name'];
         actorDisplay.appendChild(name);
-        // PROBLEM: If simply left-clicking on url, will interact with video instead of going to new page (e.g. IMDb)
-        //          Works if right-click -> open in new tab
+        // PROBLEM: Left-clicking actor url opens link in new tab, but video then resumes playing, which clears the display
         actor['urls'].forEach(url => {
             let u = document.createElement("a");
             u.href = "https://" + url;
-            u.innerText = (url.includes("imdb") ? "IMDb" : "Wikidata") + " ";
+            u.innerText = (url.includes("imdb") ? "IMDb" : "Wikidata");
+            u.style.color = "blue";
+            u.style.textDecoration = "underline";
+            u.style.padding = "2px";
+            u.addEventListener("click", () => {
+                // can change _blank to _self to opne link in current tab
+                // can be workaround to resolve problem
+                window.open("https://" + url, "_blank").focus(); 
+                console.log("video: " + video);
+                video.pause();
+            });
             actorDisplay.appendChild(u);
         })
         actorsList.appendChild(actorDisplay);
@@ -103,6 +116,11 @@ function getVideoInfo(videoId) {
     };
     request.send(JSON.stringify(payload));
 
+    // for testing ui - example response
+    // let response ={'windows': [{'start': 0, 'actors': [{'name': 'Jeff Bridges', 'urls': ['www.wikidata.org/wiki/Q174843', 'www.imdb.com/name/nm0000313'], 'actorId': '18ir8e0'}, {'name': 'John Goodman', 'urls': ['www.wikidata.org/wiki/Q215072'], 'actorId': '3bH4eA5d'}, {'name': 'Steve Buscemi', 'urls': ['www.wikidata.org/wiki/Q104061', 'www.imdb.com/name/nm0000114'], 'actorId': '3k2Xl'}], 'end': 65480}], 
+    //                 'videoId': '2dP0WrpyFOc', 
+    //                 'video': {'name': 'TestVideos/LebowskiLenin.mp4', 'bucket': 'recognitionvideos', 'videoId': '2dP0WrpyFOc', 'lengthMillis': 66000}};
+
     console.log("response: " + JSON.stringify(response))
     console.log("Retreived video info from DB");
     return response;
@@ -117,8 +135,11 @@ function recognizeActors() {
     // though very unlikely this will happen
     let vid = document.getElementsByTagName("video")[0];
     let vidUrl = vid.baseURI;
-    // PROBLEM: if navigating to new video after previous video, will display actors from previous video 
+    // PROBLEM - PARTIALLY RESOLVED: if navigating to new video after previous video, will display actors from previous video 
     //          until Recognize button is pressed again
+    // (partial) SOLUTION: When navigating to new page, the video automatically starts playing, 
+    //                     so it'll clear the actors from display
+    vid.addEventListener("play", clearDisplay);
     createDisplay(vid); 
     console.log("Video selected: ");
     console.log("Video baseURI: " + vidUrl);
@@ -134,7 +155,7 @@ function recognizeActors() {
     if (actors === null) {
         console.log("could not get info about actors in this scene");
     } else {
-        renderActors(actors);
+        renderActors(actors, vid);
     }
 }
 
