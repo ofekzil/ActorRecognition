@@ -98,33 +98,69 @@ function getActors(vidCurrentTime, response) {
     return info;
 }
 
+// store response from API call in local storage
+function cacheResponse(response, videoId) {
+    console.log("storing response in local cache");
+    let toCache = {};
+    toCache[videoId] = response;
+    chrome.storage.local.set(toCache)
+    .then(() => {console.log("cached response in chrome.storage.local")});
+}
+
+
 
 // get video info from DB using provided videoId
 function getVideoInfo(videoId) {
     console.log("Begin logic to retreive video info from DB");
-    const VIDEO_API = "https://v43ehquqkg.execute-api.us-west-2.amazonaws.com/the-stage/GetVideo"; // check if it can become a global variable (or hidden from view)
-    let payload = {"videoId": videoId};
-    let response = {};
-    let request = new XMLHttpRequest();
-    request.open("POST", VIDEO_API, false); // synchronous call!
-    request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    request.onreadystatechange = function () {
-        if (request.readyState === 4 && request.status === 200) {
-            console.log("request.responseText: " + request.responseText);
-            response = JSON.parse(request.responseText);
-        }
-    };
-    request.send(JSON.stringify(payload));
+    // const VIDEO_API = "https://v43ehquqkg.execute-api.us-west-2.amazonaws.com/the-stage/GetVideo"; // check if it can become a global variable (or hidden from view)
+    // let payload = {"videoId": videoId};
+    // let response = {};
+    // let request = new XMLHttpRequest();
+    // request.open("POST", VIDEO_API, false); // synchronous call!
+    // request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    // request.onreadystatechange = function () {
+    //     if (request.readyState === 4 && request.status === 200) {
+    //         console.log("request.responseText: " + request.responseText);
+    //         response = JSON.parse(request.responseText);
+    //     }
+    // };
+    // request.send(JSON.stringify(payload));
 
     // for testing ui - example response
-    // let response ={'windows': [{'start': 0, 'actors': [{'name': 'Jeff Bridges', 'urls': ['www.wikidata.org/wiki/Q174843', 'www.imdb.com/name/nm0000313'], 'actorId': '18ir8e0'}, {'name': 'John Goodman', 'urls': ['www.wikidata.org/wiki/Q215072'], 'actorId': '3bH4eA5d'}, {'name': 'Steve Buscemi', 'urls': ['www.wikidata.org/wiki/Q104061', 'www.imdb.com/name/nm0000114'], 'actorId': '3k2Xl'}], 'end': 65480}], 
-    //                 'videoId': '2dP0WrpyFOc', 
-    //                 'video': {'name': 'TestVideos/LebowskiLenin.mp4', 'bucket': 'recognitionvideos', 'videoId': '2dP0WrpyFOc', 'lengthMillis': 66000}};
+    let response ={'windows': [{'start': 0, 'actors': [{'name': 'Jeff Bridges', 'urls': ['www.wikidata.org/wiki/Q174843', 'www.imdb.com/name/nm0000313'], 'actorId': '18ir8e0'}, {'name': 'John Goodman', 'urls': ['www.wikidata.org/wiki/Q215072'], 'actorId': '3bH4eA5d'}, {'name': 'Steve Buscemi', 'urls': ['www.wikidata.org/wiki/Q104061', 'www.imdb.com/name/nm0000114'], 'actorId': '3k2Xl'}], 'end': 65480}], 
+                    'videoId': '2dP0WrpyFOc', 
+                    'video': {'name': 'TestVideos/LebowskiLenin.mp4', 'bucket': 'recognitionvideos', 'videoId': '2dP0WrpyFOc', 'lengthMillis': 66000}};
 
     console.log("response: " + JSON.stringify(response))
     console.log("Retreived video info from DB");
+    cacheResponse(response, videoId);
     return response;
 }
+
+// try to get video info from local chrome storage
+function getVideoFromCache(videoId, vid) {
+    let response = null;
+    chrome.storage.local.get(videoId)
+        .then((result) => {
+            console.log("Result received from chrome storage: ");
+            console.log(JSON.stringify(result));
+            response = result;
+            if (response === null || response.size == 0) {
+                console.log("response is null")
+                response = getVideoInfo(videoId);
+            } else {
+                response = response[videoId];
+            }
+            let actors = getActors(vid.currentTime, response);
+            if (actors === null) {
+                console.log("could not get info about actors in this scene");
+            } else {
+                renderActors(actors, vid);
+            }
+        });
+    return response;
+}
+
 
 
 // recognize actors in current scene
@@ -148,15 +184,21 @@ function recognizeActors() {
     // videoId to be used for retreiving video info from DB
     let videoId = vidUrl.split("v=")[1].split("&")[0];
     console.log("videoId: " + videoId)
-    
-    let response = getVideoInfo(videoId);
-
-    let actors = getActors(vid.currentTime, response);
-    if (actors === null) {
-        console.log("could not get info about actors in this scene");
-    } else {
-        renderActors(actors, vid);
-    }
+    let response = getVideoFromCache(videoId, vid);
+    // if (response == null) {
+    //     response = getVideoInfo(videoId);
+    // }
+    // let actors = getActors(vid.currentTime, response);
+    // if (actors === null) {
+    //     console.log("could not get info about actors in this scene");
+    // } else {
+    //     renderActors(actors, vid);
+    // }
+    // chrome.storage.local.get(null)
+    // .then((res) => {
+    //     console.log("Got the following: ")
+    //     console.log(res);
+    // })
 }
 
 recognizeActors();
