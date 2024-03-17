@@ -99,7 +99,7 @@ function getActors(vidCurrentTime, response) {
 }
 
 // store response from API call in local storage
-// set expiry time to be current time + 2 weeks
+// set expiry time to be current time + two weeks
 function cacheResponse(response, videoId) {
     console.log("storing response in local cache");
     let toCache = {};
@@ -116,7 +116,8 @@ function cacheResponse(response, videoId) {
 // get video info from DB using provided videoId
 function getVideoInfo(videoId) {
     console.log("Begin logic to retreive video info from DB");
-    const VIDEO_API = "https://v43ehquqkg.execute-api.us-west-2.amazonaws.com/the-stage/GetVideo"; // check if it can become a global variable (or hidden from view)
+    const VIDEO_API_BASE_64 = "aHR0cHM6Ly92NDNlaHF1cWtnLmV4ZWN1dGUtYXBpLnVzLXdlc3QtMi5hbWF6b25hd3MuY29tL3RoZS1zdGFnZS9HZXRWaWRlbw==";
+    const VIDEO_API = atob(VIDEO_API_BASE_64);
     let payload = {"videoId": videoId};
     let response = {};
     let request = new XMLHttpRequest();
