@@ -13,6 +13,12 @@ let split = vid.getVideoUrl().split("v=")
 // gets the video Id
 let videoId = split[1]
 
+// view all items in local storage
+console.log(chrome.storage.local.get(null));
+
+// clear all items from local storage
+chrome.storage.local.clear(() => {console.log("cleared storage.local")});
+
 // sample json for response from API Gateway to get data about video and actors using videoId
 // IMPORTANT: windows array should be sorted from beginning to end of video.
 // will be done in the backenf and stored that way in the DB
