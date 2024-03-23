@@ -6,21 +6,30 @@
 
 import json
 import boto3
+import logging
 
+
+log = logging.getLogger()
+log.setLevel(logging.INFO)
 
 dynamodb_resource = boto3.resource('dynamodb')
 
 
 def lambda_handler(event, context):
-    print("event: ")
-    print(json.dumps(event))
+    log.info("Entering get_video lambda for getting video from DynamoDB")
+    log.debug("event: ")
+    log.debug(json.dumps(event))
+
     video_id = event['videoId']
-    print("videoId: " + video_id)
+    log.info("videoId: " + video_id)
+
     video = dynamodb_resource.Table("Videos").get_item(Key={"videoId" : video_id})
-    print("video received: ")
-    print(video)
-    print("video['Item']: ")
-    print(video['Item'])
-    print("start: " + str(video['Item']['windows'][0]['start']))
-    print("end: " + str(video['Item']['windows'][0]['end']))
+    log.info("video received: ")
+    log.info(video)
+    
+    log.debug("video['Item']: ")
+    log.debug(video['Item'])
+    log.debug("start: " + str(video['Item']['windows'][0]['start']))
+    log.debug("end: " + str(video['Item']['windows'][0]['end']))
+    log.info("Exiting get_video lambda for getting video from DynamoDB")
     return video['Item']

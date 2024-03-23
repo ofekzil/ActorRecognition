@@ -17,8 +17,10 @@ import json
 import urllib.parse
 import boto3
 import os
+import logging
 
-print('Loading function')
+log = logging.getLogger()
+log.setLevel(logging.INFO)
 
 SNS_TOPIC_ARN = os.environ.get('SNS_TOPIC_ARN')
 ROLE_ARN = os.environ.get('ROLE_ARN')
@@ -27,15 +29,16 @@ rekognition_client = boto3.client('rekognition')
 
 
 def lambda_handler(event, context):
-    print("Received event: " + json.dumps(event))
+    log.info("Entering video_uploaded lambda for sending uploaded video in S3 to rekognition")
+    log.debug("Received event: " + json.dumps(event))
 
     # bucket can be used for processing with rekognition
     bucket = event['Records'][0]['s3']['bucket']['name']
-    print("Bucket = " + bucket)
+    log.info("Bucket = " + bucket)
 
     # key is the video name - can be used directly in rekognition
     key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
-    print("Key = " + key)
+    log.info("Key = " + key)
     
     s3_vid = {
             'S3Object': {
@@ -50,11 +53,13 @@ def lambda_handler(event, context):
 
     try:
         response = rekognition_client.start_celebrity_recognition(Video=s3_vid, NotificationChannel=sns_channel)
-        print("Receievd response from start_celebrity_recognition: ")
-        print(json.dumps(response))
+        log.info("Receievd response from start_celebrity_recognition: ")
+        log.info(json.dumps(response))
 
     except Exception as e:
-        print(e)
-        print('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
+        log.error('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
+        log.error(e)
         raise e
+    
+    log.info("Exiting video_uploaded lambda for sending uploaded video in S3 to rekognition")
     

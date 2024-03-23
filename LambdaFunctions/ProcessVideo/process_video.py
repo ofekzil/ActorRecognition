@@ -12,6 +12,10 @@
 # this code is modelled on SNS-Lambda configuration tutorial in AWS docs
 import boto3
 import json
+import logging
+
+log = logging.getLogger()
+log.setLevel(logging.INFO)
 
 MARGIN_OF_ERROR = 10000
 
@@ -23,38 +27,37 @@ dynamodb_resource = boto3.resource('dynamodb')
 
 
 def lambda_handler(event, context):
-    print("Started process_video lambda function")
+    log.info("Entering process_video lambda function for processing rekognition results and writing to DynamoDB")
     for record in event['Records']:
         process_message(record)
-    print("Finished process_video lambda function")
+    log.info("Entering process_video lambda function for processing rekognition results and writing to DynamoDB")
 
 def process_message(record):
     try:
         message = record['Sns']['Message']
-        print(f"Processed message {message}")
+        log.debug(f"Processed message {message}")
         message_json = json.loads(message)
         jobId = message_json['JobId']
-        print("JobId: " + jobId)
+        log.info("JobId: " + jobId)
         response = rekognition_client.get_celebrity_recognition(JobId=jobId, SortBy='TIMESTAMP')
-        print("Response from get_celebrity_recognition: ")
-        print(json.dumps(response))
+        log.info("Response from get_celebrity_recognition: ")
+        log.info(json.dumps(response))
 
-        print("Starting video processing")
         processed_video_actors = process_video(response)
-        print("Finished processing video")
-
-        print("Writing to DB")
+        
         write_to_db(processed_video_actors)
-        print("Finished writing to DB")
         
     except Exception as e:
-        print("An error occurred")
+        log.error("An error occurred when processing SNS message of rekognition results")
+        log.error(f"SNS message: {message}")
+        log.error(e)
         raise e
 
 
 # process a result json of video analyzed by rekognition 
 # create TWO json objects to write to DB, one for actors and one for the video (see comments above write_to_db)   
 def process_video(video):
+    log.info("Starting video processing")
     # sample json template for reuslt of analyzed video
     video_processed = {
         "videoId": "",
@@ -69,6 +72,9 @@ def process_video(video):
     # pass this array to group_actors()
     actors_processed = get_actors(video['Celebrities'])
     grouped_actors = group_actors(actors_processed)
+
+    log.info("Finished processing video")
+
     return {
         'videoId': video_id,
         'video': video_processed,
@@ -95,12 +101,12 @@ def get_actors(celebs):
 
 # gets the video id from the object tags
 def get_video_id(bucket, key):
-    print(f"Getting tags for video in bucket = {bucket}, with key/name = {key}")
+    log.info(f"Getting tags for video in bucket = {bucket}, with key/name = {key}")
     tags = s3_client.get_object_tagging(Bucket=bucket, Key=key)
-    print("Received tags: ")
-    print(json.dumps(tags))
+    log.info("Received tags: ")
+    log.info(json.dumps(tags))
     video_id = tags['TagSet'][0]['Value']
-    print("VideoId: " + video_id)
+    log.info("VideoId: " + video_id)
     return video_id
 
 
@@ -192,23 +198,26 @@ def group_actors(actors):
 # should be added to newly created curr_group
 # it might be useless, so need to test further
 def check_rest_actors(prev_group, curr_group, actor_timestamps, actor_id):
-    print("started check_rest_actors")
-    print("prev_group: " + json.dumps(prev_group, indent=2))
+    log.info("started check_rest_actors")
+    log.debug("prev_group: " + json.dumps(prev_group, indent=2))
     for actor in prev_group['actors']:
         if actor['actorId'] != actor_id:
             if actor_timestamps[actor['actorId']] + MARGIN_OF_ERROR >= curr_group['start']:
                 curr_group['actors'].append(actor['info'])
-                print("added to group: " + actor['name'])
-    print("finished check_rest_actors")
+                log.debug("added to group: " + actor['name'])
+    log.info("finished check_rest_actors")
     return curr_group
 
 
 # write video info and windows array contaning grouped actors w/ start and end timestamps to DynamoDB table
 def write_to_db(object_to_write):
-    print("Writing to DynamoDB:")
-    print("object_to_write: ")
-    print(json.dumps(object_to_write))
+    log.info("Writing to DynamoDB:")
+    log.debug("object_to_write: ")
+    log.debug(json.dumps(object_to_write))
+
     response = dynamodb_resource.Table("Videos").put_item(Item=object_to_write)
-    print("Response from DynamoDB: ")
-    print(json.dumps(response))
+    
+    log.debug("Response from DynamoDB: ")
+    log.debug(json.dumps(response))
+    log.info("Finished writing to DynamoDB")
     
