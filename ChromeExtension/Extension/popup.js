@@ -1,7 +1,6 @@
 
 // create handler for click event if recognize button
 function onClickHandler() {
-    console.log("Button clicked - script starting");
     chrome.tabs.query({active : true}, function(tabs) {
         const tab = tabs[0];
         const url = tab.url;
@@ -13,14 +12,12 @@ function onClickHandler() {
             });
         }
     });
-    console.log("Button clicked - script ended");
 }
 
 // add onClick handler for recognize function
 function addButtonListener() {
     let button = document.getElementById("recognizeButton");
     button.addEventListener("click", onClickHandler);
-    console.log("Added listener to button!");
 }
 
 addButtonListener();
