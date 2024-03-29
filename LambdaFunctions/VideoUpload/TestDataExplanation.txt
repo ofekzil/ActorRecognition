@@ -1,0 +1,5 @@
+Below is an explanation of sample events provided here.
+There are two examples attached, one for a clip from The Big Lebowski, and another for a clip from Seinfeld.
+
+{video}Uploaded.json: A file with event to trigger Lambda function in video_uploaded.py. The event is for when a new video 
+                    file has been uploaded to a specified S3 bucket.

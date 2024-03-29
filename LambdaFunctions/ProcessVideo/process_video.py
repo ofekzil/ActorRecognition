@@ -32,6 +32,7 @@ def lambda_handler(event, context):
         process_message(record)
     log.info("Entering process_video lambda function for processing rekognition results and writing to DynamoDB")
 
+# process SNS message receieved in Lambda trigger event
 def process_message(record):
     try:
         message = record['Sns']['Message']
@@ -55,7 +56,7 @@ def process_message(record):
 
 
 # process a result json of video analyzed by rekognition 
-# create TWO json objects to write to DB, one for actors and one for the video (see comments above write_to_db)   
+# return a json representation of processed data to write to DynamoDB 
 def process_video(video):
     log.info("Starting video processing")
     # sample json template for reuslt of analyzed video
@@ -86,7 +87,6 @@ def process_video(video):
 def get_actors(celebs):
     actors = []
     for celeb in celebs:
-        # print("celeb: " + celeb)
         actor = {
             'timestamp': celeb['Timestamp'],
             'info': {
@@ -149,8 +149,6 @@ def get_video_id(bucket, key):
 # 4. add curr_group to windows
 # 5. return windows
 def group_actors(actors):
-    # handled in get_celebrity_recognition call, keeping just in case
-    # actors = sorted(actors, key=lambda a: a['Timestamp'])
     windows = []
     curr_group = {
         "start": 0,
@@ -210,6 +208,7 @@ def check_rest_actors(prev_group, curr_group, actor_timestamps, actor_id):
 
 
 # write video info and windows array contaning grouped actors w/ start and end timestamps to DynamoDB table
+# writing a single prepared json object
 def write_to_db(object_to_write):
     log.info("Writing to DynamoDB:")
     log.debug("object_to_write: ")

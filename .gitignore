@@ -1,2 +1,5 @@
 .env
 __pycache__/
+Playground/
+LambdaFunctions/ProcessVideo/TestResults/SeinfeldProcessing_1.json
+ChromeExtension/Extension/draftScripts.js

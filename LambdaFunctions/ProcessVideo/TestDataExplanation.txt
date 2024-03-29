@@ -1,0 +1,10 @@
+Explanation about sample/test data and results used for Lambda function in process_video.py:
+
+File LebowskiEvent.json: An example SNS notification that triggers the Lambda function with the JobID of the Rekognition
+                        result from start_celebrity_recognition.
+
+Folder TestResults contains contains three kinds of files, with examples for both a Big Lebowski clip and a Seinfled clip:
+- {video}Processing_{version}.json: Direct result of get_celebrity_recognition by JobID before any filtering has occured.
+- {video}GetActors_{version}.json: Extract of actor information. Result of function get_actors().
+- {video}GroupActors_{version}.json: Processed result of actors grouped into windows accroding to timestamp.
+                                    Result of function group_actors().
