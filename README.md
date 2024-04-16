@@ -1,40 +1,75 @@
 # Actor Recognition
 
 ## Summary
-This program is to recognize actors in videos and display a short summary of them (i.e. name, image, IMDb URL) in a browser extension in real-time.
+This program is to recognize actors in videos and display a short summary of them (i.e. name and IMDb URL) via a browser extension.
 
-## High-Level Design & AWS Services to Use
+## Functional Overview
 
-### Backend Pre-processing of Videos (done behind the scenes)
-- Create a Youtube channel and upload short movie clips to it.
-- Upload the same videos to Amazon S3. Will need to ensure the videos share a unique ID (e.g. Youtube's auto-generated ID).
-- When a video is uploaded to S3, trigger a Lambda function to process that video and store the information.
-- The Lambda calls AWS Rekognition to get all celebrity information from the video. 
-- Rekognition sends back a response. This likely means it writes to a specified SNS topic, which can in turn trigger the Lambda (either same or different, need to check) and send the information (See above TODO).
-- The Lambda then stores all information in a database, likely DynamoDB. Could also be a file.
-- Must store data: video ID (primary key), actor name, timestamp(s) where the actor is visible, IMDb url.
-- Optional data: Movie name/video title, (link to) profile picture, more somewhat relevant data (maybe for monitoring or reports).
+This extension allows users to click a button when watching a Youtube video that would pause the video and display for each actor in the scene their name and relevant URLs (IMDb and/or Wikidata) overlayed on to of the Youtube video. Once the user resumes the video, the information regarding the actors disappears.
 
-### Client-side Extension
-- Browser extension with the following functionalities:
-    1. Work on any Youtube video, though will only work with my videos. There will be no results for anything else.
-    2. When a user clicks on a video, load all info required for this video from the database/file on AWS using resources/workflow outlined below.
-    3. Display to the user in real-time the actors that are currently on screen. This includes name, possible profile picture, and possible IMDb url. At the very least, names.
-- When the extension requests data for a video, it will call an API Gateway to invoke a Lambda.
-- the Lambda function would use a given ID value from the extension (via API call), in order to retreive all necessary information from the database (or file).
-- The database in question is the same one described in previous section.
-- Return info to the extension and cache the values to be used while video plays. This will be all ideally done before the video starts playing.
-- After retreiving data, the extension will need to set triggers using the provided timestamps, so it knows when to display each actor.
+### Demo Screenshots
 
-### Questions & TODO
-- Discover more about Rekognition and how it works (mess around with CLI and API).
-- How do requests and responses work?
-- Where do responses from Rekognition go? Is it SNS, and if so, how is it best utilized?
-- For data storage, what is the best way both in terms of space and efficiency? Is a database better (DynamoDB), or simply a file on perhaps S3?
-- When an actor appears multiple times, what happens timestamp-wise? Do they send an event for every millisecond the actor appears? How do we know when they stop appearing?
-- How do I set up triggers in the extension for displaying an actor using the timestamps provided and the current time in the video?
-- Check out operations on video element (more in playground.js)
-- How to get Youtube video ID from url or webpage
-- Decide on best use of ID for videos. Who decides first what the video ID is, and how to best communicate that information between the different components (Youtube, extension, S3, database).
-- How to best cache values at video start.
-- Check options of creating an algorithm for determining when actors appear on screen. Should be somewhat similar to a sliding window algorithm. Basically, something like actor A appers between timestamps 0 and 1, actor B appears in 0.5 to 2, then figure out the best window of when to display both. Will be implemented in server side initial processing of video when uploaded, then store results in database accordingly.
+Here are steps for how a user may interact with the extension. 
+
+1. The user is watching a video on Youtube.
+![Lebowski Playing](DemoScreenshots/LebowskiPlaying.PNG)
+
+2. The user opens the extension by clicking on it, revealing the Recognize button (extension located at top-right corner).
+![Lebowski Extension Open](DemoScreenshots/LebowskiExtensionOpen.PNG)
+
+3. The user clicks the Recognize button which displays the actors' names and relevant URLs in the top-left corner of the video.
+![Actors on Screen](DemoScreenshots/ActorsOnScreen.PNG)
+
+## Technical Overview
+
+The extension source code is written in two languages - Python for the backend and JavaScript (with some HTML) for the frontend. The extension also uses a number of AWS resources for its functionality, which are described below.
+
+There are two main parts to the extension - a pre-processing of videos when they are uploaded, and a client-side Google Chrome extension to retrieve and display the data to the user in the way described above.
+
+Below is a description of each part.
+
+### Pre-processing of Videos when Uploaded
+For a video to be compatible for use with the extension, it needs to be uploaded to two places and processed. Here are the steps for uploading a video, as well as the flow of data when it is processed.
+
+1. Upload a video file (e.g. mp4) to a designated Youtube channel. Once uploaded, make note of the video ID in the URL (found after v=) for later.
+
+2. Upload the same video file to a specified S3 bucket. Set the video ID from step 1 as a tag for the video (set it as value, with key being "videoId"). This will be used for storing in the database.
+
+3. The video being uploaded into the specified S3 bucket creates an event that triggers a Lambda function. Its source code is found in `LambdaFunctions/VideoUpload/video_uploaded.py`. The function extracts necessary data about the video as well as setting information for a designated SNS topic. It then sends that information to Rekognition calling its `start_celebrity_recognition` functionality.
+
+4. Rekognition processes the video from the S3 bucket and works on recognizing celebrities in it. When finished, it writes the results to the SNS topic specified earlier.
+
+5. The message recieved by the SNS topic triggers a Lambda function with source code found in `LambdaFunctions/ProcessVideo/process_video.py`. The function retrieves Rekognition's result by calling its `get_celebrity_recognition` functionality. It then processes the result from Rekognition and works on grouping the actors by timestamps to display to the user. When finished, the video and actor information, in a JSON format, are written to a DynamoDB table, using the video ID as the primary key. It is extracted from the S3 object's tag (see step 2).
+
+
+### Google Chrome Extension
+Here is a description of the flow of data and what happens when a user interacts with the extension.
+
+1. The user is watching a video on Youtube that is part of the dsignated channel for the extension's use. This ensures the same video exists in S3 with its processed information in the database (see Functional Overview).
+
+2. The user clicks on the extension's Recognize button.
+
+3. The extension extracts the video ID from the video's URL. It will be used for getting data about the video.
+
+4. The extension checks Chrome's local storage for the video's information. It will be there if the user has clicked the button before for this video and the data hasn't expired from local storage yet. If the data is in local storage return it and skip to step 7. Otherwise continue straight below.
+
+5. If the data is not in Chrome local storage, then execute an API call using a specified endpoint. This will be a POST request with the payload passed being the video ID.
+
+6. The API endpoint is an AWS API Gateway that triggers a Lambda function with source code found in `LambdaFunctions/GetVideo/get_video.py`. The function searches the DynamoDB table for a video with the matching ID as its primary key. Then return the retrieved JSON object back to the frontend.
+
+7. Using the retrieved JSON object (either from local storage or from API call), determine which group of actors to display based on the timestamp. Once determined, pause the video and render the information overlayed on top of the video (as shown in functional overview above).
+
+8. If video information was retrieved via API call, cache the data in Chrome local storage for any future usages by this user.
+
+
+## Limitations and Future Improvements
+
+The extension faces a number of limitations in its functionality that could be improved in future. Here is a short description of them with possible future fixes.
+
+- Since Rekognition requires the video to be uploaded to an S3 bucket, then it means we must possess the file of the video to send for processing. This limits the current extension from working directly with any video streaming service (e.g. Netflix). In future however, if a streaming service wanted to use the extension the only part that would have to change is the front-end side of the application, provided the videos are being stored on AWS S3.
+
+- Currently, we upload the video to two different locations in order to use the extension. This is inconvenient to do. It can be solved in the same way as the previous point, or perhaps by using an existing public Youtube video, provided you are able to get the video file and upload it to S3.
+
+- Rekognition's level of accuracy when recognizing celebrtities may not be the most reliable and can sometimes recognize the wrong actors or miss a key actor in the scene. This is out of my control while using Rekognition.
+
+- When Rekognition returns a response, it provides a level of confidence in its recognition (number from 0-1). Currently, when the video is processed the function ignores this information. In future, there could be an implementation for either setting a default minimum level of confidence, or allowing the user to choose a desired minimum level of confidence in recognition (e.g. process actors only if at least 50% confident).
