@@ -11,20 +11,21 @@ This extension allows users to click a button when watching a Youtube video that
 
 Here are steps for how a user may interact with the extension. 
 
-1. The user is watching a video on Youtube.
-![Lebowski Playing](DemoScreenshots/LebowskiPlaying.PNG)
-
-2. The user opens the extension by clicking on it, revealing the Recognize button (extension located at top-right corner).
+1. While watchign a video on Youtube, the user opens the extension by clicking on it, revealing the Recognize button (extension located at top-right corner).
 ![Lebowski Extension Open](DemoScreenshots/LebowskiExtensionOpen.PNG)
 
-3. The user clicks the Recognize button which displays the actors' names and relevant URLs in the top-left corner of the video.
+3. The user clicks the Recognize button which pauses the video and displays the actors' names and relevant URLs in the top-left corner of the video.
 ![Actors on Screen](DemoScreenshots/ActorsOnScreen.PNG)
 
 ## Technical Overview
 
-The extension source code is written in two languages - Python for the backend and JavaScript (with some HTML) for the frontend. The extension also uses a number of AWS resources for its functionality, which are described below.
+### Design Diagram
 
-There are two main parts to the extension - a pre-processing of videos when they are uploaded, and a client-side Google Chrome extension to retrieve and display the data to the user in the way described above.
+![Design Diagram](DemoScreenshots/DesignDiagram.png)
+
+The application source code is written in two languages - Python for the backend and JavaScript (with some HTML) for the frontend. It also uses a number of AWS resources for its functionality, which are described below.
+
+There are two main parts to the application - a pre-processing of videos when they are uploaded, and a client-side Google Chrome extension to retrieve and display the data to the user in the way described above.
 
 Below is a description of each part.
 
@@ -45,21 +46,19 @@ For a video to be compatible for use with the extension, it needs to be uploaded
 ### Google Chrome Extension
 Here is a description of the flow of data and what happens when a user interacts with the extension.
 
-1. The user is watching a video on Youtube that is part of the dsignated channel for the extension's use. This ensures the same video exists in S3 with its processed information in the database (see Functional Overview).
+1. While watching a video on Youtube, the user clicks on the extension's Recognize button.
 
-2. The user clicks on the extension's Recognize button.
+2. The extension extracts the video ID from the video's URL. It will be used for getting data about the video.
 
-3. The extension extracts the video ID from the video's URL. It will be used for getting data about the video.
+3. The extension checks Chrome's local storage for the video's information. It will be there if the user has clicked the button before for this video and the data hasn't expired from local storage yet. If the data is in local storage return it and skip to step 7. Otherwise continue straight below.
 
-4. The extension checks Chrome's local storage for the video's information. It will be there if the user has clicked the button before for this video and the data hasn't expired from local storage yet. If the data is in local storage return it and skip to step 7. Otherwise continue straight below.
+4. If the data is not in Chrome local storage, then execute an API call using a specified endpoint. This will be a POST request with the payload passed being the video ID.
 
-5. If the data is not in Chrome local storage, then execute an API call using a specified endpoint. This will be a POST request with the payload passed being the video ID.
+5. The API endpoint is an AWS API Gateway that triggers a Lambda function with source code found in `LambdaFunctions/GetVideo/get_video.py`. The function searches the DynamoDB table for a video with the matching ID as its primary key. Then return the retrieved JSON object back to the frontend.
 
-6. The API endpoint is an AWS API Gateway that triggers a Lambda function with source code found in `LambdaFunctions/GetVideo/get_video.py`. The function searches the DynamoDB table for a video with the matching ID as its primary key. Then return the retrieved JSON object back to the frontend.
+6. Using the retrieved JSON object (either from local storage or from API call), determine which group of actors to display based on the timestamp. Once determined, pause the video and render the information overlayed on top of the video (as shown in functional overview above).
 
-7. Using the retrieved JSON object (either from local storage or from API call), determine which group of actors to display based on the timestamp. Once determined, pause the video and render the information overlayed on top of the video (as shown in functional overview above).
-
-8. If video information was retrieved via API call, cache the data in Chrome local storage for any future usages by this user.
+7. If video information was retrieved via API call, cache the data in Chrome local storage for any future usages by this user.
 
 
 ## Limitations and Future Improvements
